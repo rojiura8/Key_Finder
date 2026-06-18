@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Key Finder - キー判定ツール</title>
+  <style>
+    /* ベーススタイル */
+    :root {
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #a5b4fc;
+      --bg-color: #f9fafb;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー */
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: var(--primary-color);
+      margin-bottom: 5px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* メインセクション */
+    .panel {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-bottom: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    /* ピアノ鍵盤UI */
+    .piano-wrapper {
+      margin-bottom: 24px;
+      padding: 0 10px;
+    }
+
+    .piano {
+      display: flex;
+      position: relative;
+      height: 140px;
+      max-width: 450px;
+      margin: 0 auto;
+      background: #27272a;
+      padding: 3px 3px 0 3px;
+      border-radius: 6px 6px 8px 8px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .key {
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition: background-color 0.1s ease;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .key.white {
+      width: calc(100% / 7);
+      background-color: #ffffff;
+      margin: 0 1px;
+      border-radius: 0 0 4px 4px;
+      padding-bottom: 12px;
+    }
+
+    .key.white:first-child { margin-left: 0; border-bottom-left-radius: 5px; }
+    .key.white:last-child { margin-right: 0; border-bottom-right-radius: 5px; }
+    
+    .key.white:hover { background-color: #f3f4f6; }
+    .key.white.active { 
+      background-color: var(--primary-light); 
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .key.black {
+      position: absolute;
+      top: 0;
+      width: 9%;
+      height: 60%;
+      background-color: #18181b;
+      margin-left: -4.5%; /* 中心に配置するための調整 */
+      border-radius: 0 0 4px 4px;
+      z-index: 2;
+      padding-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .key.black:hover { background-color: #3f3f46; }
+    .key.black.active { background-color: var(--primary-color); }
+
+    .key-label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .key.black .key-label {
+      color: #a1a1aa;
+      font-size: 0.65rem;
+    }
+
+    .key.white.active .key-label { color: #1e1b4b; }
+    .key.black.active .key-label { color: #ffffff; }
+
+    /* 音選択ボタン (グリッド) */
+    .note-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 10px;
+    }
+
+    .note-btn {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .note-btn:hover {
+      background-color: #e0e7ff;
+      border-color: var(--primary-color);
+    }
+
+    .note-btn.active {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+    }
+
+    /* コントロールボタン */
+    .clear-btn {
+      background-color: transparent;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .clear-btn:hover {
+      background-color: #f3f4f6;
+      color: var(--text-main);
+    }
+
+    /* 結果表示エリア */
+    .results-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 600px) {
+      .results-container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .result-box h3 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .key-list {
+      list-style: none;
+    }
+
+    .key-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background-color: var(--bg-color);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .key-name {
+      font-weight: bold;
+      font-size: 1.05rem;
+      color: var(--primary-color);
+    }
+
+    .key-scale {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .empty-message {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Key Finder</h1>
+      <p>構成音を選択すると、該当するキー（調）を判定します</p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">音を選択</h2>
+          <button id="clear-btn" class="clear-btn">すべてクリア</button>
+        </div>
+
+        <div class="piano-wrapper">
+          <div class="piano">
+            <div class="key white" data-index="0"><span class="key-label">C</span></div>
+            <div class="key white" data-index="2"><span class="key-label">D</span></div>
+            <div class="key white" data-index="4"><span class="key-label">E</span></div>
+            <div class="key white" data-index="5"><span class="key-label">F</span></div>
+            <div class="key white" data-index="7"><span class="key-label">G</span></div>
+            <div class="key white" data-index="9"><span class="key-label">A</span></div>
+            <div class="key white" data-index="11"><span class="key-label">B</span></div>
+            
+            <div class="key black" data-index="1" style="left: calc(100% / 7 * 1);"><span class="key-label">C#</span></div>
+            <div class="key black" data-index="3" style="left: calc(100% / 7 * 2);"><span class="key-label">D#</span></div>
+            <div class="key black" data-index="6" style="left: calc(100% / 7 * 4);"><span class="key-label">F#</span></div>
+            <div class="key black" data-index="8" style="left: calc(100% / 7 * 5);"><span class="key-label">G#</span></div>
+            <div class="key black" data-index="10" style="left: calc(100% / 7 * 6);"><span class="key-label">A#</span></div>
+          </div>
+        </div>
+
+        <div id="note-grid" class="note-grid">
+          </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title" style="margin-bottom: 16px;">判定結果</h2>
+        <div class="results-container">
+          <div class="result-box">
+            <h3>メジャーキー (Major)</h3>
+            <ul id="major-results" class="key-list"></ul>
+          </div>
+          <div class="result-box">
+            <h3>マイナーキー (Minor)</h3>
+            <ul id="minor-results" class="key-list"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 12音階の定義
+    const NOTES = ['C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
+
+    // スケールの音程間隔（半音単位）
+    const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+    const MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
+
+    // 全てのキーのデータを生成
+    const allKeys = { major: [], minor: [] };
+
+    function generateScaleIndices(rootIndex, intervals) {
+      return intervals.map(interval => (rootIndex + interval) % 12);
+    }
+
+    // 12キー分のデータを構築
+    for (let i = 0; i < 12; i++) {
+      const majorIndices = generateScaleIndices(i, MAJOR_INTERVALS);
+      const minorIndices = generateScaleIndices(i, MINOR_INTERVALS);
+
+      allKeys.major.push({
+        name: `${NOTES[i]} Major`,
+        indices: majorIndices,
+        scaleNotesText: majorIndices.map(idx => NOTES[idx]).join(' - ')
+      });
+
+      allKeys.minor.push({
+        name: `${NOTES[i]} Minor`,
+        indices: minorIndices,
+        scaleNotesText: minorIndices.map(idx => NOTES[idx]).join(' - ')
+      });
+    }
+
+    // 状態管理：選択された音のインデックスを保持
+    const selectedIndices = new Set();
+
+    // DOM要素の取得
+    const noteGrid = document.getElementById('note-grid');
+    const clearBtn = document.getElementById('clear-btn');
+    const majorResultsEl = document.getElementById('major-results');
+    const minorResultsEl = document.getElementById('minor-results');
+
+    // UIの初期化
+    function init() {
+      // 下部の音ボタンを生成
+      NOTES.forEach((note, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'note-btn';
+        btn.textContent = note;
+        btn.dataset.index = index;
+        
+        btn.addEventListener('click', () => {
+          toggleNote(index);
+        });
+        
+        noteGrid.appendChild(btn);
+      });
+
+      // ピアノ鍵盤のクリックイベントを登録
+      document.querySelectorAll('.key').forEach(key => {
+        key.addEventListener('click', () => {
+          const index = parseInt(key.dataset.index);
+          toggleNote(index);
+        });
+      });
+
+      // クリアボタンのイベント
+      clearBtn.addEventListener('click', clearAll);
+
+      // 初期描画
+      updateUI();
+    }
+
+    // 音の選択状態を反転させる
+    function toggleNote(index) {
+      if (selectedIndices.has(index)) {
+        selectedIndices.delete(index);
+      } else {
+        selectedIndices.add(index);
+      }
+      updateUI();
+    }
+
+    // すべての選択を解除する
+    function clearAll() {
+      selectedIndices.clear();
+      updateUI();
+    }
+
+    // 画面全体（鍵盤、ボタン、判定結果）を更新する
+    function updateUI() {
+      // 1. ピアノ鍵盤の色を更新
+      document.querySelectorAll('.key').forEach(key => {
+        const index = parseInt(key.dataset.index);
+        if (selectedIndices.has(index)) {
+          key.classList.add('active');
+        } else {
+          key.classList.remove('active');
+        }
+      });
+
+      // 2. グリッドボタンの色を更新
+      document.querySelectorAll('.note-btn').forEach(btn => {
+        const index = parseInt(btn.dataset.index);
+        if (selectedIndices.has(index)) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // 3. 判定結果の更新
+      updateResults();
+    }
+
+    // 判定結果の計算と描画
+    function updateResults() {
+      const isAnyNoteSelected = selectedIndices.size > 0;
+      
+      // 選択された音がすべて含まれているキーを抽出
+      const matchingMajor = allKeys.major.filter(keyData => {
+        return Array.from(selectedIndices).every(selectedIndex => keyData.indices.includes(selectedIndex));
+      });
+      
+      const matchingMinor = allKeys.minor.filter(keyData => {
+        return Array.from(selectedIndices).every(selectedIndex => keyData.indices.includes(selectedIndex));
+      });
+
+      const renderList = (matchingKeys, containerElement) => {
+        if (!isAnyNoteSelected) {
+          containerElement.innerHTML = '<p class="empty-message">音を選択してください</p>';
+          return;
+        }
+
+        if (matchingKeys.length === 0) {
+          containerElement.innerHTML = '<p class="empty-message">該当するキーがありません</p>';
+          return;
+        }
+
+        containerElement.innerHTML = matchingKeys.map(key => `
+          <li class="key-item">
+            <span class="key-name">${key.name}</span>
+            <span class="key-scale">構成音: ${key.scaleNotesText}</span>
+          </li>
+        `).join('');
+      };
+
+      renderList(matchingMajor, majorResultsEl);
+      renderList(matchingMinor, minorResultsEl);
+    }
+
+    // アプリの起動
+    init();
+
+  </script>
+</body>
+</html>
